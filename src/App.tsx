@@ -1,28 +1,40 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: Apache-2.0
+import { useEffect, useState } from "react";
+import type { Schema } from "../amplify/data/resource";
+import { generateClient } from "aws-amplify/data";
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage from './loginPage';
-import HomePage from './homePage';
-import ConfirmUserPage from './confirmUserPage';
-import './App.css'
+const client = generateClient<Schema>();
 
-const App = () => {
-  const isAuthenticated = () => {
-    const accessToken = sessionStorage.getItem('accessToken');
-    return !!accessToken;
-  };
+function App() {
+  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+
+  useEffect(() => {
+    client.models.Todo.observeQuery().subscribe({
+      next: (data) => setTodos([...data.items]),
+    });
+  }, []);
+
+  function createTodo() {
+    client.models.Todo.create({ content: window.prompt("Todo content") });
+  }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={isAuthenticated() ? <Navigate replace to="/home" /> : <Navigate replace to="/login" />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/confirm" element={<ConfirmUserPage />} />
-        <Route path="/home" element={isAuthenticated() ? <HomePage /> : <Navigate replace to="/login" />} />
-      </Routes>
-    </BrowserRouter>
+    <main>
+      <h1>My todos</h1>
+      <button onClick={createTodo}>+ new</button>
+      <ul>
+        {todos.map((todo) => (
+          <li key={todo.id}>{todo.content}</li>
+        ))}
+      </ul>
+      <div>
+        🥳 App successfully hosted. Try creating a new todo.
+        <br />
+        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
+          Review next step of this tutorial.
+        </a>
+      </div>
+    </main>
   );
-};
+}
 
 export default App;
